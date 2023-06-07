@@ -1,0 +1,6 @@
+spring:
+  datasource:
+    username: test
+kafka:
+  producer:
+    bootstrap-servers: localhost:9092

@@ -1,0 +1,39 @@
+logging:
+  level:
+    org:
+      hibernate:
+        type: trace
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:25432/kafka_pet
+    username: test
+    password: test
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        show_sql: true
+        default_schema: public
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+          batch_size: 128
+    open-in-view: false
+  liquibase:
+    url: ${spring.datasource.url}
+    change-log: classpath:/db/changelog/master.yaml
+    default-schema: public
+    liquibase-schema: public
+    user: test
+    password: test
+  application:
+    name: kafka-pet-consumer
+
+kafka:
+  consumer:
+    bootstrap-servers: localhost:29092
+    numConsumers: 1
