@@ -1,5 +1,6 @@
 package com.example.consumer.client;
 
+import com.example.consumer.consumer.KafkaConsumerConfiguration;
 import com.example.consumer.consumer.KafkaConsumerService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,8 @@ import static com.example.consumer.consumer.TopicName.CLIENTS;
 public class ClientListener implements ApplicationListener<ApplicationReadyEvent> {
 
     @Autowired
+    private KafkaConsumerConfiguration configuration;
+    @Autowired
     private KafkaConsumerService<ClientDto> kafkaConsumerService;
     @Autowired
     private ClientService clientService;
@@ -27,7 +30,7 @@ public class ClientListener implements ApplicationListener<ApplicationReadyEvent
         kafkaConsumerService.subscribeToTopic(
                 CLIENTS.getTopicName(),
                 ClientDto.class,
-                "client-group",
+                configuration.getGroupIds().get(CLIENTS.getTopicName()),
                 record -> clientService.saveClient(record)
         );
     }

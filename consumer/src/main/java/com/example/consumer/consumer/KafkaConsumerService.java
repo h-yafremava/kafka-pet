@@ -5,9 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -19,9 +17,6 @@ import java.util.function.Consumer;
 public class KafkaConsumerService<T> {
 
     @Autowired
-    private KafkaConsumerConfiguration configuration;
-
-    @Autowired
     private KafkaConsumerFactory<T> kafkaConsumerFactory;
 
     public void subscribeToTopic(
@@ -31,26 +26,20 @@ public class KafkaConsumerService<T> {
             final Consumer<T> consumer
     ) {
         final var topics = Collections.singletonList(topic);
-        final ExecutorService executor = Executors.newFixedThreadPool(configuration.getNumConsumers());
-        final List<KafkaConsumerLoop<T>> kafkaConsumers = new ArrayList<>();
-        for (int i = 0; i < configuration.getNumConsumers(); i++) {
-            final var kafkaConsumer = kafkaConsumerFactory.createConsumer(groupId, targetType);
-            final var consumerLoop = new KafkaConsumerLoop<T>(topics, kafkaConsumer, consumer);
-            kafkaConsumers.add(consumerLoop);
-            executor.submit(consumerLoop);
-        }
+        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        final var kafkaConsumer = kafkaConsumerFactory.createConsumer(groupId, targetType);
+        final var consumerLoop = new KafkaConsumerLoop<T>(topics, kafkaConsumer, consumer);
+        executor.submit(consumerLoop);
 
-        addShutdownHook(kafkaConsumers, executor);
+        addShutdownHook(consumerLoop, executor);
     }
 
     private void addShutdownHook(
-            final List<KafkaConsumerLoop<T>> kafkaConsumers,
+            final KafkaConsumerLoop<T> kafkaConsumer,
             final ExecutorService executor
     ) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            for (final KafkaConsumerLoop<T> item : kafkaConsumers) {
-                item.shutdown();
-            }
+            kafkaConsumer.shutdown();
             executor.shutdown();
             try {
                 executor.awaitTermination(5000, TimeUnit.MILLISECONDS);

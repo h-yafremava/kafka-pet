@@ -1,5 +1,6 @@
 package com.example.consumer.transaction;
 
+import com.example.consumer.consumer.KafkaConsumerConfiguration;
 import com.example.consumer.consumer.KafkaConsumerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,8 @@ import static com.example.consumer.consumer.TopicName.TRANSACTIONS;
 public class TransactionListener implements ApplicationListener<ApplicationReadyEvent> {
 
     @Autowired
+    private KafkaConsumerConfiguration configuration;
+    @Autowired
     private KafkaConsumerService<TransactionDto> kafkaConsumerService;
     @Autowired
     private TransactionService transactionService;
@@ -24,7 +27,7 @@ public class TransactionListener implements ApplicationListener<ApplicationReady
         kafkaConsumerService.subscribeToTopic(
                 TRANSACTIONS.getTopicName(),
                 TransactionDto.class,
-                "transaction-group",
+                configuration.getGroupIds().get(TRANSACTIONS.getTopicName()),
                 record -> transactionService.saveTransaction(record)
         );
     }

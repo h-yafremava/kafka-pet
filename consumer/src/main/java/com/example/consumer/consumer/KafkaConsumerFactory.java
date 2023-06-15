@@ -33,7 +33,7 @@ public class KafkaConsumerFactory<T> {
         final var props = new Properties();
         props.put(BOOTSTRAP_SERVERS_CONFIG, configuration.getBootstrapServers());
         props.put(GROUP_ID_CONFIG, consumerGroupId);
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, configuration.getAutoOffsetReset());
 
         return props;
     }
