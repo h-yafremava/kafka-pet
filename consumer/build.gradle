@@ -37,7 +37,7 @@ repositories {
 dependencies {
 
     implementation(
-            'org.apache.kafka:kafka-clients:3.2.3',
+            'org.springframework.kafka:spring-kafka',
             'org.springframework.boot:spring-boot-starter-data-jpa',
             'org.springframework.boot:spring-boot-starter-validation',
             "com.cosium.spring.data:spring-data-jpa-entity-graph:${springDataJpaEntityGraphVersion}",
@@ -62,6 +62,7 @@ dependencies {
 
 
     testImplementation(
+            'org.apache.kafka:kafka-clients:3.2.3',
             'org.springframework.boot:spring-boot-starter-test',
             "org.mapstruct:mapstruct:${mapstructVersion}",
             platform('org.testcontainers:testcontainers-bom:1.17.5'),

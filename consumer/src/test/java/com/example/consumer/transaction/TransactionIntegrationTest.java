@@ -3,10 +3,10 @@ package com.example.consumer.transaction;
 import com.example.consumer.base.BaseIntegrationTest;
 import com.example.consumer.client.ClientEntity;
 import com.example.consumer.client.ClientRepository;
-import com.example.consumer.consumer.TopicName;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.time.LocalDateTime;
 
@@ -17,13 +17,16 @@ public class TransactionIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private ClientRepository clientRepository;
 
+    @Value("${kafka.topic.name.transaction}")
+    private String topicName;
+
     @Autowired
     private TransactionRepository transactionRepository;
     @Test
     public void createTransaction() {
         final var givenTransaction = getTransaction();
         kafkaProducer.send(
-                TopicName.TRANSACTIONS.getTopicName(),
+                topicName,
                 givenTransaction.getClientId().toString(),
                 givenTransaction
         );
@@ -53,7 +56,7 @@ public class TransactionIntegrationTest extends BaseIntegrationTest {
         final var givenTransaction = getTransaction();
 
         kafkaProducer.send(
-                TopicName.TRANSACTIONS.getTopicName(),
+                topicName,
                 givenTransaction.getClientId().toString(),
                 givenTransaction
         );

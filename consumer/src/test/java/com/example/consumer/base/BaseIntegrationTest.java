@@ -42,7 +42,7 @@ public abstract class BaseIntegrationTest {
 
     @DynamicPropertySource
     static void overrideProperties(DynamicPropertyRegistry registry) {
-        registry.add("kafka.consumer.bootstrap-servers", KAFKA_CONTAINER::getBootstrapServers);
+        registry.add("spring.kafka.bootstrap-servers", KAFKA_CONTAINER::getBootstrapServers);
         registry.add("kafka.producer.bootstrap-servers", KAFKA_CONTAINER::getBootstrapServers);
         registry.add("spring.datasource.url", COCKROACHDB_CONTAINER::getJdbcUrl);
     }

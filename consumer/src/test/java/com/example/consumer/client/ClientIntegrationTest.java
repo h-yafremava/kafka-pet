@@ -1,10 +1,10 @@
 package com.example.consumer.client;
 
 import com.example.consumer.base.BaseIntegrationTest;
-import com.example.consumer.consumer.TopicName;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
@@ -12,11 +12,15 @@ public class ClientIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private ClientRepository clientRepository;
+
+    @Value("${kafka.topic.name.client}")
+    private String topicName;
+
     @Test
     public void createClient() {
         final var givenClient = getClient();
         kafkaProducer.send(
-                TopicName.CLIENTS.getTopicName(),
+                topicName,
                 givenClient.getClientId().toString(),
                 givenClient
         );

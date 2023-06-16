@@ -92,4 +92,4 @@ services:
         condition: service_healthy
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db/kafka_pet
-      - KAFKA_CONSUMER_BOOTSTRAP-SERVERS=broker:9092
+      - SPRING_KAFKA_BOOTSTRAP-SERVERS=broker:9092
