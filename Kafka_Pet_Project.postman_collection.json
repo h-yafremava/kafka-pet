@@ -1,0 +1,72 @@
+{
+	"info": {
+		"_postman_id": "656166db-5338-43f7-a7a4-8a1553e1b23d",
+		"name": "Kafka Pet Project",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "14701221"
+	},
+	"item": [
+		{
+			"name": "Client",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"clientId\": 2,\r\n    \"email\": \"test3@test.com\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:9011/portal/api/v1/clients",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9011",
+					"path": [
+						"portal",
+						"api",
+						"v1",
+						"clients"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Transaction",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"clientId\": 1,\r\n    \"bank\": \"333377\",\r\n    \"transactionType\": \"INCOME\",\r\n    \"quantity\": 6,\r\n    \"price\": 500,\r\n    \"createdAt\": \"2007-12-03T10:15:30\"\r\n\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:9011/portal/api/v1/transactions",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9011",
+					"path": [
+						"portal",
+						"api",
+						"v1",
+						"transactions"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

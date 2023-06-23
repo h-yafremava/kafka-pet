@@ -1,0 +1,29 @@
+package com.example.consumer.transaction;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class TransactionDto {
+    private String bank;
+    private Long clientId;
+    private String transactionType;
+    private Integer quantity;
+    private Double price;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @JsonSerialize(using = LocalDateTimeSerializer.class)
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+    private LocalDateTime createdAt;
+}

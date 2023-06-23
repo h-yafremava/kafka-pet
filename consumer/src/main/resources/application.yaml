@@ -1,0 +1,48 @@
+logging:
+  level:
+    org:
+      hibernate:
+        type: trace
+      apache:
+        kafka: info
+spring:
+  kafka:
+    bootstrap-servers: localhost:29092
+    consumer:
+      group-id: myGroup
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+  datasource:
+    url: jdbc:postgresql://localhost:25432/kafka_pet
+    username: test
+    password: test
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        show_sql: true
+        default_schema: public
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+          batch_size: 128
+    open-in-view: false
+  liquibase:
+    url: ${spring.datasource.url}
+    change-log: classpath:/db/changelog/master.yaml
+    default-schema: public
+    liquibase-schema: public
+    user: test
+    password: test
+  application:
+    name: kafka-pet-consumer
+
+kafka:
+  topic:
+    name:
+      transaction: transactions
+      client: clients

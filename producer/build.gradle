@@ -1,0 +1,52 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '2.7.12'
+    id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '17'
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    implementation(
+            'org.springframework.boot:spring-boot-starter-web',
+            'org.apache.kafka:kafka-clients:3.2.3',
+            'org.springframework.boot:spring-boot-starter-validation',
+            'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.0'
+    )
+
+    compileOnly(
+            'org.projectlombok:lombok'
+    )
+
+    annotationProcessor(
+            'org.projectlombok:lombok'
+    )
+
+
+    testImplementation(
+            'org.springframework.boot:spring-boot-starter-test',
+            platform('org.testcontainers:testcontainers-bom:1.17.5'),
+            'org.testcontainers:junit-jupiter',
+            'org.testcontainers:kafka:1.17.6',
+            'net.javacrumbs.json-unit:json-unit-spring:2.36.0',
+    )
+
+}
+
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

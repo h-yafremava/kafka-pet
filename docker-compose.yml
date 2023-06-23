@@ -1,0 +1,95 @@
+version: '3.7'
+
+services:
+  db:
+    image: postgres:14.5-alpine
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready", "-d", "kafka_pet" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "25432:5432"
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  zookeeper:
+    hostname: zookeeper
+    image: confluentinc/cp-zookeeper:7.3.2
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  broker:
+    image: confluentinc/cp-kafka:7.3.2
+    hostname: broker
+    ports:
+      - 29092:29092
+    depends_on:
+      - zookeeper
+    healthcheck:
+      test: [ "CMD", "nc", "-vz", "localhost", "29092" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT_OUTSIDE://:29092,PLAINTEXT_INTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_OUTSIDE://localhost:29092,PLAINTEXT_INTERNAL://broker:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_INTERNAL:PLAINTEXT,PLAINTEXT_OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  init-kafka:
+    image: confluentinc/cp-kafka:7.3.2
+    hostname: init-kafka
+    depends_on:
+      - broker
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      "
+      kafka-topics --bootstrap-server broker:9092 --list
+      
+      echo -e 'Creating kafka topics'
+      kafka-topics --bootstrap-server broker:9092 --create --if-not-exists --topic clients --replication-factor 1 --partitions 5
+      kafka-topics --bootstrap-server broker:9092 --create --if-not-exists --topic transactions --replication-factor 1 --partitions 5
+      
+      echo -e 'Successfully created the following topics:'
+      kafka-topics --bootstrap-server broker:9092 --list
+      "
+  producer:
+    hostname: producer
+    image: producer:1.0.0
+    build:
+      context: .
+      dockerfile: producer/Dockerfile
+    ports:
+      - "9011:9011"
+    depends_on:
+      broker:
+        condition: service_healthy
+    environment:
+      - SERVER_PORT=9011
+      - KAFKA_PRODUCER_BOOTSTRAP-SERVERS=broker:9092
+
+  consumer:
+    hostname: consumer
+    image: consumer:1.0.0
+    build:
+      context: .
+      dockerfile: consumer/Dockerfile
+    ports:
+      - "9012:9012"
+    depends_on:
+      broker:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db/kafka_pet
+      - SPRING_KAFKA_BOOTSTRAP-SERVERS=broker:9092
