@@ -135,3 +135,51 @@ services:
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db/kafka_pet
       - SPRING_KAFKA_BOOTSTRAP-SERVERS=broker:9092
+
+
+  jdbc-connect:
+    image: confluentinc/cp-kafka-connect:7.2.0
+    ports:
+      - "8085:8085"
+    environment:
+      - CONNECT_BOOTSTRAP_SERVERS=broker:9092
+      - CONNECT_REST_PORT=8085
+      - CONNECT_LISTENERS=http://0.0.0.0:8085
+      - CONNECT_REST_ADVERTISED_HOST_NAME=jdbc-connect
+      - CONNECT_GROUP_ID=quickstart
+      - CONNECT_CONFIG_STORAGE_TOPIC=quickstart-config
+      - CONNECT_OFFSET_STORAGE_TOPIC=quickstart-offsets
+      - CONNECT_STATUS_STORAGE_TOPIC=quickstart-status
+      - CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR=1
+      - CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR=1
+      - CONNECT_STATUS_STORAGE_REPLICATION_FACTOR=1
+      - CONNECT_KEY_CONVERTER=org.apache.kafka.connect.json.JsonConverter
+      - CONNECT_VALUE_CONVERTER=org.apache.kafka.connect.json.JsonConverter
+      - CONNECT_INTERNAL_KEY_CONVERTER=org.apache.kafka.connect.json.JsonConverter
+      - CONNECT_INTERNAL_VALUE_CONVERTER=org.apache.kafka.connect.json.JsonConverter
+    healthcheck:
+      test: ["CMD", "curl", "-f", "jdbc-connect:8085/connectors"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    depends_on:
+      - broker
+    command:
+      - bash
+      - -c
+      - |
+        confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:10.4.0
+        /etc/confluent/docker/run
+
+  config-jdbc-connector:
+    image: confluentinc/cp-kafka-connect:7.2.0
+    depends_on:
+      jdbc-connect:
+        condition: service_healthy
+    volumes:
+      - ./jdbc-source.json:/etc/kafka/jdbc-source.json
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      " echo -e 'Creating Data Generator source'
+        curl -H 'Content-Type: application/json' jdbc-connect:8085/connectors --data @"../../etc/kafka/jdbc-source.json"
+      "

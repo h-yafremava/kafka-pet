@@ -13,3 +13,7 @@ _Kafka_Pet_Project.postman_collection.json_
 ##### _jdbc:postgresql://localhost:25432/kafka_pet_
 
 user: test, password: test
+
+
+## Topic name
+jdbc-connector-transaction
