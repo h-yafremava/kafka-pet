@@ -14,6 +14,7 @@ _Kafka_Pet_Project.postman_collection.json_
 
 user: test, password: test
 
-
-## Topic name
-jdbc-connector-transaction
+## kafkacat commands
+kafkacat -C -b broker:9092 -t jdbc-connector-transaction -s key=s -s value=avro -r schema-registry:8081
+kafkacat -C -b broker:9092 -t kafka.public.transaction -s key=s -s value=avro -r schema-registry:8081
+kafkacat -C -b broker:9092 -t kafka.public.client -s key=s -s value=avro -r schema-registry:8081

@@ -16,48 +16,6 @@ services:
     volumes:
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
 
-  debezium:
-    image: debezium/connect:1.9
-    environment:
-      BOOTSTRAP_SERVERS: broker:9092
-      GROUP_ID: 1
-      CONFIG_STORAGE_TOPIC: connect_configs
-      OFFSET_STORAGE_TOPIC: connect_offsets
-      KEY_CONVERTER: io.confluent.connect.avro.AvroConverter
-      VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
-      CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
-    depends_on:
-      - broker
-    ports:
-      - 8083:8083
-    healthcheck:
-      test: ["CMD", "curl", "-f", "debezium:8083/connectors"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-
-  schema-registry:
-    image: confluentinc/cp-schema-registry:6.2.10
-    environment:
-      - SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL=zookeeper:2181
-      - SCHEMA_REGISTRY_HOST_NAME=schema-registry
-      - SCHEMA_REGISTRY_LISTENERS=http://schema-registry:8081,http://localhost:8081
-    depends_on: [zookeeper, kafka]
-
-  config-connector:
-    image: debezium/connect:1.9
-    depends_on:
-        debezium:
-          condition: service_healthy
-    volumes:
-      - ./debezium.json:/kafka/debezium.json
-    entrypoint: [ '/bin/sh', '-c' ]
-    command: |
-      " echo -e 'Creating Data Generator source'
-        curl -H 'Content-Type: application/json' debezium:8083/connectors --data @debezium.json
-      "
-
   zookeeper:
     hostname: zookeeper
     image: confluentinc/cp-zookeeper:7.3.2
@@ -136,16 +94,23 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db/kafka_pet
       - SPRING_KAFKA_BOOTSTRAP-SERVERS=broker:9092
 
+  schema-registry:
+    image: confluentinc/cp-schema-registry:6.2.10
+    environment:
+      - SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL=zookeeper:2181
+      - SCHEMA_REGISTRY_HOST_NAME=schema-registry
+      - SCHEMA_REGISTRY_LISTENERS=http://schema-registry:8081,http://localhost:8081
+    depends_on: [zookeeper, kafka]
 
-  jdbc-connect:
-    image: confluentinc/cp-kafka-connect:7.2.0
+  kafka-connect:
+    image: confluentinc/cp-kafka-connect-base:6.2.0
     ports:
       - "8085:8085"
     environment:
       - CONNECT_BOOTSTRAP_SERVERS=broker:9092
       - CONNECT_REST_PORT=8085
       - CONNECT_LISTENERS=http://0.0.0.0:8085
-      - CONNECT_REST_ADVERTISED_HOST_NAME=jdbc-connect
+      - CONNECT_REST_ADVERTISED_HOST_NAME=kafka-connect
       - CONNECT_GROUP_ID=quickstart
       - CONNECT_CONFIG_STORAGE_TOPIC=quickstart-config
       - CONNECT_OFFSET_STORAGE_TOPIC=quickstart-offsets
@@ -153,33 +118,63 @@ services:
       - CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR=1
       - CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR=1
       - CONNECT_STATUS_STORAGE_REPLICATION_FACTOR=1
-      - CONNECT_KEY_CONVERTER=org.apache.kafka.connect.json.JsonConverter
-      - CONNECT_VALUE_CONVERTER=org.apache.kafka.connect.json.JsonConverter
+      - CONNECT_KEY_CONVERTER=org.apache.kafka.connect.storage.StringConverter
+      - CONNECT_VALUE_CONVERTER=io.confluent.connect.avro.AvroConverter
+      - CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL=http://schema-registry:8081
       - CONNECT_INTERNAL_KEY_CONVERTER=org.apache.kafka.connect.json.JsonConverter
       - CONNECT_INTERNAL_VALUE_CONVERTER=org.apache.kafka.connect.json.JsonConverter
     healthcheck:
-      test: ["CMD", "curl", "-f", "jdbc-connect:8085/connectors"]
+      test: ["CMD", "curl", "-f", "kafka-connect:8085/connectors"]
       interval: 10s
       timeout: 3s
       retries: 3
     depends_on:
       - broker
+      - schema-registry
     command:
       - bash
       - -c
       - |
+        echo "Installing Connector"
+        confluent-hub install --no-prompt debezium/debezium-connector-postgresql:2.2.1
         confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:10.4.0
-        /etc/confluent/docker/run
+        #
+        echo "Launching Kafka Connect worker"
+        /etc/confluent/docker/run &
+        #
+        sleep infinity
+
+  config-debezium-connector:
+    image: confluentinc/cp-kafka-connect-base:6.2.0
+    depends_on:
+      kafka-connect:
+        condition: service_healthy
+    volumes:
+      - ./debezium.json:/etc/kafka/debezium.json
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      " echo -e 'Creating Data Generator source'
+        curl -H 'Content-Type: application/json' kafka-connect:8085/connectors --data @"../../etc/kafka/debezium.json"
+      "
 
   config-jdbc-connector:
     image: confluentinc/cp-kafka-connect:7.2.0
     depends_on:
-      jdbc-connect:
+      kafka-connect:
         condition: service_healthy
     volumes:
       - ./jdbc-source.json:/etc/kafka/jdbc-source.json
     entrypoint: [ '/bin/sh', '-c' ]
     command: |
       " echo -e 'Creating Data Generator source'
-        curl -H 'Content-Type: application/json' jdbc-connect:8085/connectors --data @"../../etc/kafka/jdbc-source.json"
+        curl -H 'Content-Type: application/json' kafka-connect:8085/connectors --data @"../../etc/kafka/jdbc-source.json"
       "
+  kafkacat:
+    image: edenhill/kafkacat:1.6.0
+    container_name: kafkacat
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        apk add jq; 
+        while [ 1 -eq 1 ];do sleep 60;done
