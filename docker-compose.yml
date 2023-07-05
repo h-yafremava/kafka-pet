@@ -160,7 +160,7 @@ services:
       "
 
   config-jdbc-connector:
-    image: confluentinc/cp-kafka-connect:7.2.0
+    image: confluentinc/cp-kafka-connect-base:6.2.0
     depends_on:
       kafka-connect:
         condition: service_healthy
