@@ -1,0 +1,15 @@
+{
+  "name": "jdbc_source_connector_postgresql_01",
+  "config": {
+    "connector.class": "io.confluent.connect.jdbc.JdbcSourceConnector",
+    "connection.url": "jdbc:postgresql://db/kafka_pet",
+    "connection.user": "test",
+    "connection.password": "test",
+    "topic.prefix": "jdbc-connector-transaction",
+    "poll.interval.ms": 50000,
+    "mode": "bulk",
+    "numeric.mapping" : "best_fit",
+    "dialect.name" : "PostgreSqlDatabaseDialect",
+    "query": "select transaction.client_id, AVG(transaction.cost)::numeric(10,2) AS average_cost from transaction where created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE group by transaction.client_id;"
+  }
+}

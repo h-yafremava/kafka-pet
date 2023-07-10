@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
   db:
-    image: postgres:14.5-alpine
+    image: debezium/postgres:14
     environment:
       POSTGRES_USER: test
       POSTGRES_PASSWORD: test
@@ -39,10 +39,10 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: PLAINTEXT_OUTSIDE://:29092,PLAINTEXT_INTERNAL://:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_OUTSIDE://localhost:29092,PLAINTEXT_INTERNAL://broker:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_INTERNAL:PLAINTEXT,PLAINTEXT_OUTSIDE:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_LISTENERS: PLAINTEXT_OUTSIDE://:29092,PLAINTEXT://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_OUTSIDE://localhost:29092,PLAINTEXT://broker:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
   init-kafka:
@@ -93,3 +93,90 @@ services:
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db/kafka_pet
       - SPRING_KAFKA_BOOTSTRAP-SERVERS=broker:9092
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:6.2.10
+    environment:
+      - SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL=zookeeper:2181
+      - SCHEMA_REGISTRY_HOST_NAME=schema-registry
+      - SCHEMA_REGISTRY_LISTENERS=http://schema-registry:8081,http://localhost:8081
+    depends_on:
+      - broker
+      - zookeeper
+
+  kafka-connect:
+    image: confluentinc/cp-kafka-connect-base:7.3.2
+    ports:
+      - "8085:8085"
+    environment:
+      - CONNECT_BOOTSTRAP_SERVERS=broker:9092
+      - CONNECT_REST_PORT=8085
+      - CONNECT_LISTENERS=http://0.0.0.0:8085
+      - CONNECT_REST_ADVERTISED_HOST_NAME=kafka-connect
+      - CONNECT_GROUP_ID=quickstart
+      - CONNECT_CONFIG_STORAGE_TOPIC=quickstart-config
+      - CONNECT_OFFSET_STORAGE_TOPIC=quickstart-offsets
+      - CONNECT_STATUS_STORAGE_TOPIC=quickstart-status
+      - CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR=1
+      - CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR=1
+      - CONNECT_STATUS_STORAGE_REPLICATION_FACTOR=1
+      - CONNECT_KEY_CONVERTER=org.apache.kafka.connect.storage.StringConverter
+      - CONNECT_VALUE_CONVERTER=io.confluent.connect.avro.AvroConverter
+      - CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL=http://schema-registry:8081
+      - CONNECT_INTERNAL_KEY_CONVERTER=org.apache.kafka.connect.json.JsonConverter
+      - CONNECT_INTERNAL_VALUE_CONVERTER=org.apache.kafka.connect.json.JsonConverter
+    healthcheck:
+      test: ["CMD", "curl", "-f", "kafka-connect:8085/connectors"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    depends_on:
+      - broker
+      - schema-registry
+    command:
+      - bash
+      - -c
+      - |
+        echo "Installing Connector"
+        confluent-hub install --no-prompt debezium/debezium-connector-postgresql:2.2.1
+        confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:10.4.0
+        #
+        echo "Launching Kafka Connect worker"
+        /etc/confluent/docker/run &
+        #
+        sleep infinity
+
+  config-debezium-connector:
+    image: confluentinc/cp-kafka-connect-base:7.3.2
+    depends_on:
+      kafka-connect:
+        condition: service_healthy
+    volumes:
+      - ./debezium.json:/etc/kafka/debezium.json
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      " echo -e 'Creating Data Generator source'
+        curl -H 'Content-Type: application/json' kafka-connect:8085/connectors --data @"../../etc/kafka/debezium.json"
+      "
+
+  config-jdbc-connector:
+    image: confluentinc/cp-kafka-connect-base:7.3.2
+    depends_on:
+      kafka-connect:
+        condition: service_healthy
+    volumes:
+      - ./jdbc-source.json:/etc/kafka/jdbc-source.json
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      " echo -e 'Creating Data Generator source'
+        curl -H 'Content-Type: application/json' kafka-connect:8085/connectors --data @"../../etc/kafka/jdbc-source.json"
+      "
+  kafkacat:
+    image: edenhill/kafkacat:1.6.0
+    container_name: kafkacat
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        apk add jq; 
+        while [ 1 -eq 1 ];do sleep 60;done
