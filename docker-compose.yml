@@ -105,7 +105,7 @@ services:
       - zookeeper
 
   kafka-connect:
-    image: confluentinc/cp-kafka-connect-base:6.2.0
+    image: confluentinc/cp-kafka-connect-base:7.3.2
     ports:
       - "8085:8085"
     environment:
@@ -147,7 +147,7 @@ services:
         sleep infinity
 
   config-debezium-connector:
-    image: confluentinc/cp-kafka-connect-base:6.2.0
+    image: confluentinc/cp-kafka-connect-base:7.3.2
     depends_on:
       kafka-connect:
         condition: service_healthy
@@ -160,7 +160,7 @@ services:
       "
 
   config-jdbc-connector:
-    image: confluentinc/cp-kafka-connect-base:6.2.0
+    image: confluentinc/cp-kafka-connect-base:7.3.2
     depends_on:
       kafka-connect:
         condition: service_healthy
